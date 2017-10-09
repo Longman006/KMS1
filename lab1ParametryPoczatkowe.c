@@ -39,6 +39,11 @@ double randomDouble(double max){
 	}
 	return (double)rand()/(double)RAND_MAX*max;
 }
+double randomSign(void){
+	if(randomDouble(2)>1)
+		return 1;
+	return -1;
+}
 
 /**
  * nie ingeruje w tab, alokuje pamięć i przyrównuje
@@ -84,7 +89,7 @@ void printVector(Vector* v1){
 		printf("%lf",v1->xyz[i]);
 	}
 
-
+}
 
 
 /**
@@ -203,7 +208,7 @@ Vector** initPosition(Params* params){
 
 Vector** initEnergy(Params* params){
 	double N = pow(params->paramsTab[NN],3);
-	double k = 1.3806*pow(10,-23);
+	double k = 1.3806*pow(10,-2);
 	double T0 = params->paramsTab[T_0];
 	double lambda[3];
 	double stala = -1.0/2.0*k*T0;
@@ -226,18 +231,43 @@ Vector** initEnergy(Params* params){
 	return energie;
 }
 
+Vector** initMomentum(Params* params,Vector** energies){
+	double mmm = params->paramsTab[MM];
+	double nnn = pow(params->paramsTab[NN],3);
+	double tab[3] = {0};
+	int wsp = 0;
+	int iii = 0 ;
+	Vector** retValue;
+
+	retValue = malloc(sizeof(Vector*)*nnn);
+	if(retValue== NULL)
+		return NULL;
+
+	for(iii = 0 ; iii < nnn ; iii++ ){
+		for(wsp = 0 ; wsp <3;wsp++){
+			tab[wsp] = randomSign()* sqrt(2*mmm*energies[iii]->xyz[wsp]);
+		}
+		retValue[iii] = newVector(tab);
+	}
+	return retValue;
+}
+
 int main(void){
 
 	int iii=0;
 	Params* params = newParameters("PlikWejsciowy.txt");
 	Vector** vvv;
 	Vector** eeenergie;
+	Vector** pedy;
 
 	vvv = initPosition(params);
 	eeenergie = initEnergy(params);
+	pedy = initMomentum(params, eeenergie);
+
 	for(iii=0; iii<params->paramsTab[NN] ; iii++ ){
 		printVector(vvv[iii]);
 		printVector(eeenergie[iii]);
+		printVector(pedy[iii]);
 	}
 
 	return 1;
