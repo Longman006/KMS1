@@ -30,6 +30,13 @@ typedef struct {
 	int size;
 }Vector;
 
+typedef struct {
+	double V;
+	double P;
+	double H;
+	double T;
+}State;
+
 double randomDouble(double max){
 	static int check = 0;
 	double retValue = 0;
@@ -84,10 +91,11 @@ Vector* vectorMultiply(Vector* v1,double a){
  */
 void printVector(Vector* v1){
 	int i =0;
-	printf("Vector \n");
+
 	for(i = 0 ; i< v1->size ;i++){
-		printf("%lf",v1->xyz[i]);
+		printf("%lf ",v1->xyz[i]);
 	}
+	printf("Vector \n");
 
 }
 
@@ -98,11 +106,16 @@ void printVector(Vector* v1){
 Vector* vectorSum(Vector** vvv,int size){
 	double tab[] = {0,0,0};
 	int iii,xyz = 0;
-
+	tab[0] = 0;
 	//po Vektorach
 	for(iii = 0 ; iii<size ; iii++ ){
+		//printf(" vector sum iii = %d\n",iii);
+		//printVector(vvv[iii]);
 		//Po współrzędnych
 		for(xyz = 0 ; xyz<3 ; xyz++){
+			//printf(" vector sum xyz = %d\n",xyz);
+			//printf("tab[xyz] = %lf\n",tab[xyz]);
+			//printf("vvv(xyz) = %lf\n",vvv[iii]->xyz[xyz]);
 			tab[xyz]+= vvv[iii]->xyz[xyz];
 		}
 	}
@@ -153,7 +166,7 @@ Params* newParameters(char* plikParams){
 Vector** initPosition(Params* params){
 
 	double tab[] = {0,0,0};
-	Vector* temprr;
+	Vector* temprr[3];
 	double n = params->paramsTab[NN];
 	double N = pow(n,3);
 	//Vector* bb0,bb1,bb2;
@@ -183,22 +196,27 @@ Vector** initPosition(Params* params){
 	 * b_2
 	 */
 	tab[1] = tab[1]/2;
-	tab[2] = params->paramsTab[AA]*sqrt(2/3);
+	tab[2] = params->paramsTab[AA]*sqrt(2.0/3.0);
 	bb[2] = newVector(tab);
 
-	for(iii[0]=0;iii[0]<params->paramsTab[NN];iii[0]++){
-		for(iii[1] = 0 ; iii[1]<params->paramsTab[NN]; iii[1]++){
-			for(iii[2] = 0 ; iii[2]<params->paramsTab[NN] ; iii[2]++){
+	printf("Vectory bb : \n");
+	for(iii[0] = 0 ; iii[0]<3 ; iii[0]++){
+		printVector(bb[iii[0]]);
+	}
+
+	for(iii[0]=0;iii[0]<n;iii[0]++){
+		for(iii[1] = 0 ; iii[1]<n; iii[1]++){
+			for(iii[2] = 0 ; iii[2]<n ; iii[2]++){
 
 				/**
 				 * Numer petli
 				 */
 				for(wsp=0,index = 0 ; wsp<3 ; wsp++){
 
-					vectorMultiply(bb[wsp],iii[wsp]-((n-1)/2) );
+					temprr[wsp] = vectorMultiply(bb[wsp],iii[wsp]-((n-1)/2) );
 					index +=iii[wsp]*pow(n,wsp);
 				}
-				rr[index] = vectorSum(bb, 3);
+				rr[index] = vectorSum(temprr, 3);
 			}
 		}
 	}
@@ -208,7 +226,7 @@ Vector** initPosition(Params* params){
 
 Vector** initEnergy(Params* params){
 	double N = pow(params->paramsTab[NN],3);
-	double k = 1.3806*pow(10,-2);
+	double k = 8.31*pow(10,-3);
 	double T0 = params->paramsTab[T_0];
 	double lambda[3];
 	double stala = -1.0/2.0*k*T0;
@@ -224,7 +242,6 @@ Vector** initEnergy(Params* params){
 	for(iii = 0 ; iii < N ; iii++){
 		for(wsp = 0 ; wsp<3 ; wsp++){
 			lambda[wsp] =log(randomDouble(1));
-			printf("lambda[%d],%lf",wsp,lambda[wsp]);
 		}
 		energie[iii] = vectorMultiply(newVector(lambda),stala);
 	}
@@ -251,24 +268,309 @@ Vector** initMomentum(Params* params,Vector** energies){
 	}
 	return retValue;
 }
+void writeToFileRawData(char* nazwaPliku,Vector** tablicaVect,int size){
+	FILE *f = fopen(nazwaPliku, "w");
+	int iii,jjj= 0 ;
+	if (f == NULL){
+	    printf("Error opening file!\n");
+	    exit(1);
+	}
+
+	for(iii =  0 ; iii<size ; iii++){
+
+		for(jjj = 0 ; jjj<3 ; jjj++){
+			fprintf(f,"%lf ",tablicaVect[iii]->xyz[jjj]);
+		}
+		fprintf(f, "\n");
+	}
+	fclose(f);
+}
+void writeToFile(char* nazwaPliku,Vector ** tablicaVect,int size){
+	FILE *f = fopen(nazwaPliku, "w");
+	int iii,jjj= 0 ;
+	if (f == NULL){
+	    printf("Error opening file!\n");
+	    exit(1);
+	}
+	fprintf(f,"%d\n\n",size);
+
+	for(iii =  0 ; iii<size ; iii++){
+		fprintf(f,"Ar ");
+		for(jjj = 0 ; jjj<3 ; jjj++){
+			fprintf(f,"%lf ",tablicaVect[iii]->xyz[jjj]);
+		}
+		fprintf(f, "\n");
+	}
+	fclose(f);
+}
+Vector* addVector(Vector* v1, Vector* v2){
+	double tab[3];
+	int iii;
+	for(iii = 0 ; iii< 3 ; iii++){
+		tab[iii] = v1->xyz[iii]+v2->xyz[iii];
+	}
+	return newVector(tab);
+}
+Vector* subtractVector(Vector* v1,Vector* v2){
+	double tab[3];
+	int iii;
+	for(iii = 0 ; iii< 3 ; iii++){
+		tab[iii] = v1->xyz[iii]-v2->xyz[iii];
+	}
+	return newVector(tab);
+}
+double vectorLengthSquare(Vector* vvv){
+	int iii = 0 ;
+	double retValue = 0 ;
+	for(iii = 0 ; iii<3 ; iii++){
+		retValue += vvv->xyz[iii]*vvv->xyz[iii];
+	}
+	return retValue;
+
+}
+double vectorLength(Vector* vvv){
+	return sqrt(vectorLengthSquare(vvv));
+}
+void momentumCorrection(Vector** pedy,int size){
+	int iii = 0 ;
+	Vector* poprawka = vectorSum(pedy, size);
+	poprawka = vectorMultiply(poprawka, -1.0/(double)(size));
+	for(iii = 0 ; iii<size ; iii++){
+		pedy[iii] = addVector(pedy[iii], poprawka);
+	}
+}
+Vector** initForce(Vector** polozenia,Params* params){
+	int N = pow(params->paramsTab[NN],3);
+	double rij=0;
+	double ri = 0 ;
+	double epsilon = params->paramsTab[EE];
+	double R = params->paramsTab[RR];
+	double L = params->paramsTab[LL];
+	double f = params->paramsTab[FF];
+	double stalaP,stalaS = 0 ;
+	int iii,jjj,wsp=0;
+	double zeroVect[] = {0,0,0};
+
+	Vector** forceP = malloc(sizeof(Vector*)*N);
+	Vector** forcePjte = malloc(sizeof(Vector*)*N);
+	Vector** forceS = malloc(sizeof(Vector*)*N);
+	Vector** retValue = malloc(sizeof(Vector*)*N);
+
+	if(retValue == NULL || forceP==NULL || forcePjte == NULL || forceS == NULL ){
+		return NULL;
+	}
+
+
+	for(iii = 0 ; iii<N ; iii++){
+		//printf("\n");
+		for(jjj = 0 ;jjj <N ; jjj++){
+			if(jjj==iii){
+				forcePjte[jjj] = newVector(zeroVect);
+				continue;
+			}
+
+			rij = vectorLength(subtractVector(polozenia[iii], polozenia[jjj]));
+			//printf("rij = %lf\n",rij);
+			stalaP = 12*epsilon/rij/rij*(pow(R/rij,12)-pow(R/rij,6));
+			forcePjte[jjj] = vectorMultiply(subtractVector(polozenia[iii], polozenia[jjj]), stalaP);
+		}
+
+		ri = vectorLength(polozenia[iii]);
+		forceP[iii]  = vectorSum(forcePjte, N);
+		stalaS = f*(L-ri)/ri;
+		if(ri<L)
+			forceS[iii] =newVector(zeroVect);
+		else
+			forceS[iii] = vectorMultiply(polozenia[iii], stalaS);
+
+		retValue[iii] = addVector(forceP[iii], forceS[iii]);
+
+	}
+	return retValue;
+
+}
+double initPot(Vector** polozenia,Params* params){
+	int N = pow(params->paramsTab[NN],3);
+	double rij=0;
+	double ri = 0 ;
+	double epsilon = params->paramsTab[EE];
+	double R = params->paramsTab[RR];
+	double L = params->paramsTab[LL];
+	double f = params->paramsTab[FF];
+	double stalaP,stalaS = 0 ;
+	int iii,jjj;
+
+	double potP = 0;
+	double potPjte = 0;
+	double potS = 0;
+	double retValue =0;
+
+	for(iii = 0 ; iii<N ; iii++){
+		for(jjj = iii ;jjj <N ; jjj++){
+			if(jjj==iii){
+				continue;
+			}
+			rij = vectorLength(subtractVector(polozenia[iii], polozenia[jjj]));
+			stalaP = epsilon*((pow(R/rij,12)-2*pow(R/rij,6)));
+			potP+=stalaP;
+		}
+
+		ri = vectorLength(polozenia[iii]);
+		stalaS = f*(ri-L)*(ri-L)/2;
+
+		if(ri<L)
+			potS+=0;
+		else
+			potS +=stalaS;
+
+	}
+	retValue+= potS;
+	retValue+=potP;
+	return retValue;
+
+}
+
+double calculateHamiltonian(Vector** pedy,double pot, Params* params){
+	double Hamiltonian = 0 ;
+	double m = params->paramsTab[MM];
+	int N = pow(params->paramsTab[NN],3);
+	int iii = 0 ;
+	for(iii = 0 ; iii<N ; iii++){
+		Hamiltonian+=vectorLengthSquare(pedy[iii])/2/m;
+	}
+	Hamiltonian+=pot;
+	return Hamiltonian;
+}
+double calculatePressure(Vector** force,Params* param){
+	double L = param->paramsTab[LL];
+	double size = pow(param->paramsTab[NN],3);
+	double retValue =  0;
+	int iii = 0 ;
+
+	for(iii = 0 ; iii<size ; iii++){
+		retValue+=vectorLengthSquare(force[iii]);
+	}
+	return retValue;
+}
+double* calculateEnergy(Vector** pedy,Params* params){
+	int iii = 0 ;
+	int size = pow(params->paramsTab[NN],3);
+	double m = params->paramsTab[MM];
+	double* tabEn = malloc(sizeof(double)*size);
+
+	for(iii = 0 ; iii < size ; iii++){
+		tabEn[iii] = vectorLength(pedy[iii])/2/m;
+	}
+	return tabEn;
+}
+double sumTable(double* tab,int size){
+	int iii = 0 ;
+	double retValue = 0 ;
+	for(iii = 0 ; iii<size ; iii++){
+		retValue+=tab[iii];
+	}
+	return retValue;
+}
+double calculateTemperature(double* tabEn,Params* param){
+	double k = 8.31*pow(10,-3);
+	int size = pow(param->paramsTab[NN],3);
+	int iii = 0 ;
+	double retValue = 0 ;
+
+	for(iii = 0 ; iii<size ; iii++){
+		retValue+=tabEn[iii];
+	}
+	retValue= retValue*2/3/size/k;
+	return retValue;
+}
+void newMomentumHalf(Vector** momentum,Vector** force,Params* params){
+	int iii = 0 ;
+	double tau = params->paramsTab[TAU];
+	double m = params->paramsTab[MM];
+	double N = pow(params->paramsTab[NN]);
+
+	for(iii = 0 ; iii<N ; iii++){
+		momentum[iii] = addVector(momentum[iii],vectorMultiply(force[iii], tau/2.0));
+	}
+}
+void newPosition(Vector** polozenia,Vector** momentumHalf,Params* params){
+	int iii = 0 ;
+	double tau = params->paramsTab[TAU];
+	double m = params->paramsTab[MM];
+	double N = pow(params->paramsTab[NN]);
+
+	for(iii =0 ; iii<N ;iii++){
+		polozenia[iii] = vectorMultiply(momentumHalf[iii], tau/m);
+	}
+}
+void newForce(Vector** polozenia,Vector** force,Params* params){
+	//free(force);
+	force = initForce(polozenia, params);
+}
+void newMomentum(Vector** momentum,Vector** force,Vector** momentumHalf,Params* params){
+	int iii = 0 ;
+	double tau = params->paramsTab[TAU];
+	double m = params->paramsTab[MM];
+	double N = pow(params->paramsTab[NN]);
+
+	for(iii = 0 ; iii<N ; iii++){
+		momentum[iii] = addVector(momentumHalf[iii], vectorMultiply(force[iii], tau/2.0));
+	}
+}
+void nextStep(Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,Params* params){
+	newMomentumHalf(pedy, sily, params);
+	newPosition(polozenia, pedyHalf, params);
+	newForce(polozenia, sily, params);
+	newMomentum(pedy, sily, pedyHalf, params);
+}
+void calculateState(State* state,Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,Params* params ){
+	state->H = calculateHamiltonian(pedy, pot, params)
+}
+void simulate(Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,Params* params){
+	int Sxyz = params->paramsTab[S_XYZ];
+	int Sout = params->paramsTab[S_OUT];
+	int S0 = params->paramsTab[S_O];
+	int koniec = 100;
+	int iii,jjj;
+	for(iii = 0 ; iii<S0 ; iii++){
+		nextStep(polozenia, pedy, sily, pedyHalf, params);
+	}
+	for(jjj = 0 ; jjj<koniec ; jjj++){
+
+
+	}
+}
 
 int main(void){
 
 	int iii=0;
+	int N =0;
+	double ham = 0 ;
 	Params* params = newParameters("PlikWejsciowy.txt");
 	Vector** vvv;
 	Vector** eeenergie;
 	Vector** pedy;
+	Vector** sily;
+	double pot,pressure,temp;
+	double* tabEn;
 
+	N =  pow(params->paramsTab[NN] ,3);
 	vvv = initPosition(params);
+	pot = initPot(vvv,params);
 	eeenergie = initEnergy(params);
 	pedy = initMomentum(params, eeenergie);
+	sily = initForce(vvv, params);
+	printf("en\n");
+	tabEn = calculateEnergy(pedy, params);
+	printf("ham\n");
+	ham = calculateHamiltonian(pedy, pot, params);
+	printf("press\n");
+	pressure = calculatePressure(sily, params);
+	printf("temp\n");
+	temp = calculateTemperature(tabEn, params);
 
-	for(iii=0; iii<params->paramsTab[NN] ; iii++ ){
-		printVector(vvv[iii]);
-		printVector(eeenergie[iii]);
-		printVector(pedy[iii]);
-	}
-
+	printf("Ham = %lf\nPress = %lf\n temp = %lf\n",ham,pressure,temp);
+	writeToFile("plikPol.txt", vvv, pow(params->paramsTab[NN],3));
+	writeToFileRawData("pedy.txt",pedy,N );
 	return 1;
 }
