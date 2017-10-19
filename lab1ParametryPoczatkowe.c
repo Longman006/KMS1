@@ -31,6 +31,7 @@ typedef struct {
 }Vector;
 
 typedef struct {
+	double t;
 	double V;
 	double P;
 	double H;
@@ -523,10 +524,24 @@ void nextStep(Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,P
 	newForce(polozenia, sily, params);
 	newMomentum(pedy, sily, pedyHalf, params);
 }
-void calculateState(State* state,Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,Params* params ){
-	state->H = calculateHamiltonian(pedy, pot, params)
+void calculateState(double t ,State* state,Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,Params* params ){
+	state->t= t;
+	state->V = initPot(polozenia, params);
+	state->H = calculateHamiltonian(pedy, state->V, params);
+	state->T = calculateTemperature(calculateEnergy(pedy, params), params);
+	state->P = calculatePressure(sily, params);
 }
-void simulate(Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,Params* params){
+void writeToFileState(State* state,char* nazwaPliku){
+	FILE *f = fopen(nazwaPliku, "a");
+		int iii,jjj= 0 ;
+		if (f == NULL){
+		    printf("Error opening file!\n");
+		    exit(1);
+		}
+		fprintf(f,"%lf,%lf,%lf,%lf,%lf\n",state->t,state->H,state->V,state->T,state->P);
+		fclose(f);
+}
+void simulate(State* state,Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,Params* params){
 	int Sxyz = params->paramsTab[S_XYZ];
 	int Sout = params->paramsTab[S_OUT];
 	int S0 = params->paramsTab[S_O];
@@ -536,7 +551,9 @@ void simulate(Vector** polozenia,Vector** pedy,Vector** sily,Vector** pedyHalf,P
 		nextStep(polozenia, pedy, sily, pedyHalf, params);
 	}
 	for(jjj = 0 ; jjj<koniec ; jjj++){
-
+		if(jjj%Sout){
+			writeToFileState(state, "plikStanowy.txt");
+		}
 
 	}
 }
